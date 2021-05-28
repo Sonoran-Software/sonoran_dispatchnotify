@@ -16,6 +16,7 @@ local cur_blip = nil
 if pluginConfig.enabled then
 
     local gpsLock = true
+    local primaryUnitLock = true
     local lastPostal = nil
     local lastCoords = nil
 
@@ -80,6 +81,11 @@ if pluginConfig.enabled then
     RegisterCommand("togglegps", function(source, args, rawCommand)
         gpsLock = not gpsLock
         TriggerEvent("chat:addMessage", {args = {"^0[ ^2GPS ^0] ", ("GPS lock has been %s"):format(gpsLock and "enabled" or "disabled")}})
+    end)
+
+    RegisterCommand("toggleprimarylock", function(source, args, rawCommand)
+        primaryUnitLock = not primaryUnitLock
+        TriggerEvent("chat:addMessage", {args = {"^0[ ^2GPS ^0] ", ("Primary unit lock has been %s"):format(gpsLock and "enabled" or "disabled")}})
     end)
 
     function track()
