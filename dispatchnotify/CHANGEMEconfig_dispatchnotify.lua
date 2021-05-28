@@ -124,7 +124,9 @@ local config = {
     --[[
         waypointFallbackEnabled: Fall back to postal if exact coordinates cannot be found (for self-generated calls)
     ]]
-    waypointFallbackEnabled = true
+    waypointFallbackEnabled = true,
+    postalSendTimer = 1500,
+    nearestPostalResourceName = "nearest-postal"
 }
 
 if config.enabled then

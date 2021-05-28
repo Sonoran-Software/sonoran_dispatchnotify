@@ -9,6 +9,8 @@
 ]]
 
 local pluginConfig = Config.GetPluginConfig("dispatchnotify")
+local trackingCall = false
+local trackingID = nil
 
 if pluginConfig.enabled then
 
@@ -46,9 +48,41 @@ if pluginConfig.enabled then
         end
     end)
 
+    RegisterNetEvent("SonoranCAD::dispatchnotify:BeginTracking")
+    AddEventHandler("SonoranCAD::dispatchnotify:BeginTracking", function(callID)
+        trackingCall = true
+        trackingID = callID
+        track()
+    end)
+
+    RegisterNetEvent("SonoranCAD::dispatchnotify:StopTracking")
+    AddEventHandler("SonoranCAD::dispatchnotify:StopTracking", function()
+        trackingCall = false
+        trackingID = nil
+    end)
+
     RegisterCommand("togglegps", function(source, args, rawCommand)
         gpsLock = not gpsLock
         TriggerEvent("chat:addMessage", {args = {"^0[ ^2GPS ^0] ", ("GPS lock has been %s"):format(gpsLock and "enabled" or "disabled")}})
     end)
+
+    function track()
+        local lastpostal = nil
+        if trackingCall then
+            while trackingCall and trackingID ~= nil do
+                local postal = nil
+                if exports[pluginConfig.nearestPostalResourceName] ~= nil then
+                    postal = exports[pluginConfig.nearestPostalResourceName]:getPostal()
+                else
+                    assert(false, "Required postal resource is not loaded. Cannot use postals plugin.")
+                end
+                if postal ~= nil and postal ~= lastpostal then
+                    TriggerServerEvent("SonoranCAD::dispatchnotify:UpdateCallPostal", postal, trackingID)
+                    lastpostal = postal
+                end
+                Citizen.Wait(pluginConfig.postalSendTimer)
+            end
+        end
+    end
 
 end

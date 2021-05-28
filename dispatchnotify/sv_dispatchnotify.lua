@@ -144,6 +144,7 @@ if pluginConfig.enabled then
     registerApiType("NEW_DISPATCH", "emergency")
     registerApiType("ATTACH_UNIT", "emergency")
     registerApiType("REMOVE_911", "emergency")
+    registerApiType("SET_CALL_POSTAL", "emergency")
     RegisterCommand(pluginConfig.respondCommandName, function(source, args, rawCommand)
         local source = tonumber(source)
         if not pluginConfig.enableUnitResponse then
@@ -249,6 +250,11 @@ if pluginConfig.enabled then
             elseif pluginConfig.waypointType == "postal" or pluginConfig.waypointFallbackEnabled then
                 if call.dispatch.postal ~= nil and call.dispatch.postal ~= "" then
                     TriggerClientEvent("SonoranCAD::dispatchnotify:SetGps", officerId, call.dispatch.postal)
+                    if call.dispatch.metaData ~= nil and call.dispatch.metaData.trackPrimary == "True" then
+                        if GetSourceByApiId(GetUnitCache()[call.dispatch.idents[1]].data.apiIds) == officerId then
+                            TriggerClientEvent("SonoranCAD::dispatchnotify:BeginTracking", officerId, call.dispatch.callId)
+                        end
+                    end
                 end
             end
         else
@@ -330,6 +336,9 @@ if pluginConfig.enabled then
             return
         end
         if officerId ~= nil and call ~= nil then
+            if call.dispatch.metaData.trackPrimary then
+                TriggerClientEvent("SonoranCAD::dispatchnotify:StopTracking", officerId)
+            end
             SendMessage("dispatch", officerId, ("You were detached from call %s."):format(call.dispatch.callId))
         end
     end)
@@ -350,6 +359,16 @@ if pluginConfig.enabled then
                 debugLog("couldn't find officer")
             end
         end
+    end)
+    RegisterServerEvent("SonoranCAD::dispatchnotify:UpdateCallPostal")
+    AddEventHandler("SonoranCAD::dispatchnotify:UpdateCallPostal", function(clpostal, callid)
+        local data = {}
+        data[1] = {
+            callId = callid,
+            postal = clpostal,
+            serverId = Config.serverId
+        }
+        performApiRequest(data, 'SET_CALL_POSTAL', function() end)
     end)
 end
 
