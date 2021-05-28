@@ -249,11 +249,12 @@ if pluginConfig.enabled then
                 TriggerClientEvent("SonoranCAD::dispatchnotify:SetLocation", officerId, LocationCache[callerId].position)
             elseif pluginConfig.waypointType == "postal" or pluginConfig.waypointFallbackEnabled then
                 if call.dispatch.postal ~= nil and call.dispatch.postal ~= "" then
-                    TriggerClientEvent("SonoranCAD::dispatchnotify:SetGps", officerId, call.dispatch.postal)
                     if call.dispatch.metaData ~= nil and call.dispatch.metaData.trackPrimary == "True" then
                         if GetSourceByApiId(GetUnitCache()[call.dispatch.idents[1]].data.apiIds) == officerId then
                             TriggerClientEvent("SonoranCAD::dispatchnotify:BeginTracking", officerId, call.dispatch.callId)
                         end
+                    else
+                        TriggerClientEvent("SonoranCAD::dispatchnotify:SetGps", officerId, call.dispatch.postal)
                     end
                 end
             end
@@ -303,6 +304,13 @@ if pluginConfig.enabled then
                         local officerId = GetUnitById(v.id)
                         if officerId ~= nil then
                             TriggerClientEvent("SonoranCAD::dispatchnotify:CallClosed", officerId, cache.callId)
+                            if call.dispatch.metaData.trackPrimary == "True" then
+                                if k == 1 then
+                                    TriggerClientEvent("SonoranCAD::dispatchnotify:StopTracking", officerId)
+                                else
+                                    TriggerClientEvent("SonoranCAD::dispatchnotify:RemoveBlip", officerId)
+                                end
+                            end
                         end
                     end
                 end
@@ -336,8 +344,9 @@ if pluginConfig.enabled then
             return
         end
         if officerId ~= nil and call ~= nil then
-            if call.dispatch.metaData.trackPrimary then
+            if call.dispatch.metaData.trackPrimary == "True" then
                 TriggerClientEvent("SonoranCAD::dispatchnotify:StopTracking", officerId)
+                TriggerClientEvent("SonoranCAD::dispatchnotify:RemoveBlip", officerId)
             end
             SendMessage("dispatch", officerId, ("You were detached from call %s."):format(call.dispatch.callId))
         end
@@ -354,12 +363,15 @@ if pluginConfig.enabled then
             local unit = GetUnitCache()[GetUnitById(id)]
             local officerId = GetSourceByApiId(unit.data.apiIds)
             if officerId ~= nil then
-                TriggerClientEvent("SonoranCAD::dispatchnotify:SetGps", officerId, postal)
+                if not call.dispatch.metaData.trackPrimary == "True" then
+                    TriggerClientEvent("SonoranCAD::dispatchnotify:SetGps", officerId, postal)
+                end
             else
                 debugLog("couldn't find officer")
             end
         end
     end)
+
     RegisterServerEvent("SonoranCAD::dispatchnotify:UpdateCallPostal")
     AddEventHandler("SonoranCAD::dispatchnotify:UpdateCallPostal", function(clpostal, callid)
         local data = {}
@@ -369,6 +381,22 @@ if pluginConfig.enabled then
             serverId = Config.serverId
         }
         performApiRequest(data, 'SET_CALL_POSTAL', function() end)
+    end)
+
+    RegisterServerEvent("SonoranCAD::dispatchnotify:UpdatePostition")
+    AddEventHandler("SonoranCAD::dispatchnotify:UpdatePostition", function(location, callid)
+        if GetCallCache()[callid] == nil then
+            debugLog("Ignore postition update, call doesn't exist")
+            return
+        end
+        local call = GetCallCache()[callid]
+        for k, id in pairs(call.dispatch.idents) do
+            if k == 1 then goto continue end
+            local unit = GetUnitCache()[GetUnitById(id)]
+            local officerId = GetSourceByApiId(unit.data.apiIds)
+            TriggerEvent("SonoranCAD::dispatchnotify:UpdateBlipPostition", location)
+            ::continue::
+        end
     end)
 end
 

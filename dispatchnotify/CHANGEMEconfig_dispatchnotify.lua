@@ -126,7 +126,8 @@ local config = {
     ]]
     waypointFallbackEnabled = true,
     postalSendTimer = 1500,
-    nearestPostalResourceName = "nearest-postal"
+    nearestPostalResourceName = "nearest-postal",
+    requireOfficerInVehicleForTrack = true -- Should Officer have to be in vehicle to be tracked?
 }
 
 if config.enabled then

@@ -11,6 +11,7 @@
 local pluginConfig = Config.GetPluginConfig("dispatchnotify")
 local trackingCall = false
 local trackingID = nil
+local cur_blip = nil
 
 if pluginConfig.enabled then
 
@@ -61,6 +62,21 @@ if pluginConfig.enabled then
         trackingID = nil
     end)
 
+    RegisterNetEvent("SonoranCAD::dispatchnotify:UpdateBlipPostition")
+    AddEventHandler("SonoranCAD::dispatchnotify:UpdateBlipPosition", function(position)
+        if blip ~= nil then
+            RemoveBlip(blip)
+        end
+        local c = GetEntityCoords(GetPlayerPed(-1), 1)
+        blip = AddBlipForCoord(location.x, location.y, location.z)
+        SetBlipRoute(blip, true)
+    end)
+
+    RegisterNetEvent("SonoranCAD::dispatchnotify:RemoveBlip")
+    AddEventHandler("SonoranCAD::dispatchnotify:RemoveBlip", function()
+        RemoveBlip(blip)
+    end)
+
     RegisterCommand("togglegps", function(source, args, rawCommand)
         gpsLock = not gpsLock
         TriggerEvent("chat:addMessage", {args = {"^0[ ^2GPS ^0] ", ("GPS lock has been %s"):format(gpsLock and "enabled" or "disabled")}})
@@ -68,17 +84,20 @@ if pluginConfig.enabled then
 
     function track()
         local lastpostal = nil
+        local postal = nil
         if trackingCall then
             while trackingCall and trackingID ~= nil do
-                local postal = nil
-                if exports[pluginConfig.nearestPostalResourceName] ~= nil then
-                    postal = exports[pluginConfig.nearestPostalResourceName]:getPostal()
-                else
-                    assert(false, "Required postal resource is not loaded. Cannot use postals plugin.")
-                end
-                if postal ~= nil and postal ~= lastpostal then
-                    TriggerServerEvent("SonoranCAD::dispatchnotify:UpdateCallPostal", postal, trackingID)
-                    lastpostal = postal
+                if IsPedInAnyVehicle(GetPlayerPed(-1), false) or not pluginConfig.requireOfficerInVehicleForTrack then
+                    if exports[pluginConfig.nearestPostalResourceName] ~= nil then
+                        postal = exports[pluginConfig.nearestPostalResourceName]:getPostal()
+                    else
+                        assert(false, "Required postal resource is not loaded. Cannot use postals plugin.")
+                    end
+                    if postal ~= nil and postal ~= lastpostal then
+                        TriggerServerEvent("SonoranCAD::dispatchnotify:UpdateCallPostal", postal, trackingID)
+                        lastpostal = postal
+                    end
+                    TriggerServerEvent("SonoranCAD::dispatchnotify:UpdatePostition", GetEntityCoords(GetPlayerPed(-1), 1), trackingID)
                 end
                 Citizen.Wait(pluginConfig.postalSendTimer)
             end
