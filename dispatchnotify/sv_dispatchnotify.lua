@@ -304,12 +304,10 @@ if pluginConfig.enabled then
                         local officerId = GetUnitById(v.id)
                         if officerId ~= nil then
                             TriggerClientEvent("SonoranCAD::dispatchnotify:CallClosed", officerId, cache.callId)
-                            if call.dispatch.metaData.trackPrimary == "True" then
-                                if k == 1 then
-                                    TriggerClientEvent("SonoranCAD::dispatchnotify:StopTracking", officerId)
-                                else
-                                    TriggerClientEvent("SonoranCAD::dispatchnotify:RemoveBlip", officerId)
-                                end
+                            if k == 1 then
+                                TriggerClientEvent("SonoranCAD::dispatchnotify:StopTracking", officerId)
+                            else
+                                TriggerClientEvent("SonoranCAD::dispatchnotify:RemoveBlip", officerId)
                             end
                         end
                     end
@@ -334,6 +332,22 @@ if pluginConfig.enabled then
         end
         if before.address ~= after.address then
             TriggerEvent("SonoranCAD::dispatchnotify:CallEdit:Address", after.dispatch.callId, after.dispatch.address)
+        end
+        if before.dispatch.metaData.trackPrimary ~= "True" and after.dispatch.metaData.trackPrimary == "True" then
+            if #after.dispatch.idents > 0 then
+                TriggerClientEvent("SonoranCAD::dispatchnotify:BeginTracking", GetSourceByApiId(GetUnitCache()[after.dispatch.idents[1]].data.apiIds), after.dispatch.callId)
+            end
+        elseif before.dispatch.metaData.trackPrimary == "True" and after.dispatch.metaData.trackPrimary ~= "True" then
+            if #before.dispatch.idents > 0 then
+                TriggerClientEvent("SonoranCAD::dispatchnotify:StopTracking", GetSourceByApiId(GetUnitCache()[before.dispatch.idents[1]].data.apiIds))
+                for k, id in pairs(before.dispatch.idents) do
+                    if k ~= 1 then
+                        local unit = GetUnitCache()[GetUnitById(id)]
+                        local officerId = GetSourceByApiId(unit.data.apiIds)
+                        TriggerClientEvent("SonoranCAD::dispatchnotify:RemoveBlip", officerId)
+                    end
+                end
+            end
         end
     end)
 

@@ -52,9 +52,12 @@ if pluginConfig.enabled then
 
     RegisterNetEvent("SonoranCAD::dispatchnotify:BeginTracking")
     AddEventHandler("SonoranCAD::dispatchnotify:BeginTracking", function(callID)
+        local oldTrackValue = trackingCall
         trackingCall = true
         trackingID = callID
-        track()
+        if not oldTrackValue then
+            track()
+        end
     end)
 
     RegisterNetEvent("SonoranCAD::dispatchnotify:StopTracking")
