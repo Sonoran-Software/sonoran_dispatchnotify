@@ -297,7 +297,7 @@ if pluginConfig.enabled then
                     TriggerEvent("SonoranCAD::pushevents:UnitAttach", data, unit)
                 end
             end,
-            ["CALL_CLOSE"] = function() 
+            ["CALL_CLOSE"] = function()
                 local cache = GetCallCache()[dispatchData.callId]
                 if cache.units ~= nil then
                     for k, v in pairs(cache.units) do
