@@ -66,13 +66,12 @@ if pluginConfig.enabled then
         trackingID = nil
     end)
 
-    RegisterNetEvent("SonoranCAD::dispatchnotify:UpdateBlipPostition")
+    RegisterNetEvent("SonoranCAD::dispatchnotify:UpdateBlipPosition")
     AddEventHandler("SonoranCAD::dispatchnotify:UpdateBlipPosition", function(position)
         if blip ~= nil then
             RemoveBlip(blip)
         end
-        local c = GetEntityCoords(GetPlayerPed(-1), 1)
-        blip = AddBlipForCoord(location.x, location.y, location.z)
+        blip = AddBlipForCoord(position.x, position.y, position.z)
         SetBlipRoute(blip, true)
     end)
 
@@ -106,7 +105,7 @@ if pluginConfig.enabled then
                         TriggerServerEvent("SonoranCAD::dispatchnotify:UpdateCallPostal", postal, trackingID)
                         lastpostal = postal
                     end
-                    TriggerServerEvent("SonoranCAD::dispatchnotify:UpdatePostition", GetEntityCoords(GetPlayerPed(-1), 1), trackingID)
+                    TriggerServerEvent("SonoranCAD::dispatchnotify:UpdatePosition", GetEntityCoords(GetPlayerPed(-1), 1), trackingID)
                 end
                 Citizen.Wait(pluginConfig.postalSendTimer)
             end
