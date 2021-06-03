@@ -68,16 +68,17 @@ if pluginConfig.enabled then
 
     RegisterNetEvent("SonoranCAD::dispatchnotify:UpdateBlipPosition")
     AddEventHandler("SonoranCAD::dispatchnotify:UpdateBlipPosition", function(position)
-        if blip ~= nil then
-            RemoveBlip(blip)
+        if cur_blip ~= nil then
+            RemoveBlip(cur_blip)
         end
-        blip = AddBlipForCoord(position.x, position.y, position.z)
-        SetBlipRoute(blip, true)
+        cur_blip = AddBlipForCoord(position.x, position.y, position.z)
+        SetBlipRoute(cur_blip, true)
     end)
 
     RegisterNetEvent("SonoranCAD::dispatchnotify:RemoveBlip")
     AddEventHandler("SonoranCAD::dispatchnotify:RemoveBlip", function()
-        RemoveBlip(blip)
+        RemoveBlip(cur_blip)
+        cur_blip = nil
     end)
 
     RegisterCommand("togglegps", function(source, args, rawCommand)
@@ -109,6 +110,8 @@ if pluginConfig.enabled then
                 end
                 Citizen.Wait(pluginConfig.postalSendTimer)
             end
+            RemoveBlip(cur_blip)
+            cur_blip = nil
         end
     end
 

@@ -250,7 +250,7 @@ if pluginConfig.enabled then
             elseif pluginConfig.waypointType == "postal" or pluginConfig.waypointFallbackEnabled then
                 if call.dispatch.postal ~= nil and call.dispatch.postal ~= "" then
                     if call.dispatch.metaData ~= nil and call.dispatch.trackPrimary and #call.dispatch.idents > 0 then
-                        if GetSourceByApiId(GetUnitCache()[call.dispatch.primary].data.apiIds) == officerId then
+                        if GetSourceByApiId(GetUnitCache()[GetUnitById(call.dispatch.primary)].data.apiIds) == officerId then
                             TriggerClientEvent("SonoranCAD::dispatchnotify:BeginTracking", officerId, call.dispatch.callId)
                         end
                     else
@@ -261,7 +261,7 @@ if pluginConfig.enabled then
         else
             debugLog("failed to find unit "..json.encode(unit))
         end
-        print(json.encode(unit))
+        debugLog(json.encode(unit))
         if pluginConfig.enableCallerNotify and callerId ~= nil then
             if pluginConfig.callerNotifyMethod == "chat" then
                 SendMessage("dispatch", callerId, pluginConfig.notifyMessage:gsub("{officer}", unit.data.name))
@@ -294,12 +294,19 @@ if pluginConfig.enabled then
                 for k, id in pairs(dispatchData.idents) do
                     print(id)
                     local unit = GetUnitCache()[GetUnitById(id)]
+                    if not unit then
+                        return
+                    end
                     local officerId = GetSourceByApiId(unit.data.apiIds)
                     TriggerEvent("SonoranCAD::pushevents:UnitAttach", data, unit)
                 end
             end,
             ["CALL_CLOSE"] = function()
                 local cache = GetCallCache()[dispatchData.callId]
+                if not cache then 
+                    return 
+                end
+                SetCallCache(dispatchData.callId, nil)
                 if cache.units ~= nil then
                     for k, v in pairs(cache.units) do
                         local officerId = GetUnitById(v.id)
@@ -333,15 +340,23 @@ if pluginConfig.enabled then
             TriggerEvent("SonoranCAD::dispatchnotify:CallEdit:Address", after.dispatch.callId, after.dispatch.address)
         end
         if before.dispatch.trackPrimary and after.dispatch.trackPrimary then
-            if #after.dispatch.idents > 0 then
-                TriggerClientEvent("SonoranCAD::dispatchnotify:BeginTracking", GetSourceByApiId(GetUnitCache()[after.dispatch.primary].data.apiIds), after.dispatch.callId)
+            if #after.dispatch.idents > 0 and after.dispatch.primary ~= -1 then
+                TriggerClientEvent("SonoranCAD::dispatchnotify:BeginTracking", GetSourceByApiId(GetUnitCache()[GetUnitById(after.dispatch.primary)].data.apiIds), after.dispatch.callId)
             end
         elseif before.dispatch.trackPrimary and after.dispatch.trackPrimary then
             if #before.dispatch.idents > 0 then
                 for k, id in pairs(before.dispatch.idents) do
                     local unit = GetUnitCache()[GetUnitById(id)]
+                    if unit == nil then 
+                        debugLog("No unit, skip")
+                        return 
+                    end
                     local officerId = GetSourceByApiId(unit.data.apiIds)
-                    if GetSourceByApiId(GetUnitCache()[before.dispatch.primary].data.apiIds) ~= officerId then
+                    if officerId == nil then 
+                        debugLog("No officerId, skip")
+                        return 
+                    end
+                    if GetSourceByApiId(GetUnitCache()[GetUnitById(before.dispatch.primary)].data.apiIds) ~= officerId then
                         TriggerClientEvent("SonoranCAD::dispatchnotify:RemoveBlip", officerId)
                     else
                         TriggerClientEvent("SonoranCAD::dispatchnotify:StopTracking", officerId)
@@ -375,13 +390,15 @@ if pluginConfig.enabled then
         end
         for k, id in pairs(call.dispatch.idents) do
             local unit = GetUnitCache()[GetUnitById(id)]
-            local officerId = GetSourceByApiId(unit.data.apiIds)
-            if officerId ~= nil then
-                if not call.dispatch.trackPrimary then
-                    TriggerClientEvent("SonoranCAD::dispatchnotify:SetGps", officerId, postal)
+            if unit ~= nil then
+                local officerId = GetSourceByApiId(unit.data.apiIds)
+                if officerId ~= nil then
+                    if not call.dispatch.trackPrimary then
+                        TriggerClientEvent("SonoranCAD::dispatchnotify:SetGps", officerId, postal)
+                    end
+                else
+                    debugLog("couldn't find officer")
                 end
-            else
-                debugLog("couldn't find officer")
             end
         end
     end)
@@ -406,15 +423,15 @@ if pluginConfig.enabled then
         local call = GetCallCache()[callid]
         for k, id in pairs(call.dispatch.idents) do
             local unit = GetUnitCache()[GetUnitById(id)]
-            if unit == nil then goto continue end
-            local officerId = GetSourceByApiId(unit.data.apiIds)
-            if GetUnitCache()[call.dispatch.primary] == nil then
-                TriggerClientEvent("SonoranCAD::dispatchnotify:StopTracking", officerId)
-                TriggerClientEvent("SonoranCAD::dispatchnotify:RemoveBlip", officerId)
+            if unit ~= nil then
+                local officerId = GetSourceByApiId(unit.data.apiIds)
+                if GetUnitCache()[GetUnitById(call.dispatch.primary)] == nil then
+                    TriggerClientEvent("SonoranCAD::dispatchnotify:StopTracking", officerId)
+                    TriggerClientEvent("SonoranCAD::dispatchnotify:RemoveBlip", officerId)
+                else
+                    TriggerClientEvent("SonoranCAD::dispatchnotify:UpdateBlipPosition", officerId, location)
+                end
             end
-            if GetSourceByApiId(GetUnitCache()[call.dispatch.primary].data.apiIds) then goto continue end
-            TriggerClientEvent("SonoranCAD::dispatchnotify:UpdateBlipPosition", officerId, location)
-            ::continue::
         end
     end)
 end
