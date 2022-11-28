@@ -386,6 +386,17 @@ if pluginConfig.enabled then
     end)
 
     AddEventHandler("SonoranCAD::pushevents:DispatchEdit", function(before, after)
+        if before.dispatch.primary ~= after.dispatch.primary then
+            -- Primary Unit Updated, remove tracking from old unit.
+            local unit = GetUnitCache()[GetUnitById(before.dispatch.primary)]
+            if unit ~= nil then 
+                local officerId = GetSourceByApiId(unit.data.apiIds)
+                TriggerClientEvent("SonoranCAD::dispatchnotify:StopTracking", officerId)
+            end
+        end
+        if before.dispatch.primary ~= after.dispatch.primary or before.dispatch.trackPrimary ~= after.dispatch.trackPrimary then
+            TriggerEvent("SonoranCAD::dispatchnotify:CallEdit:Tracking", after.dispatch.callId, after.dispatch.trackPrimary, after.dispatch.primary)
+        end
         if before.dispatch.postal ~= after.dispatch.postal then
             TriggerEvent("SonoranCAD::dispatchnotify:CallEdit:Postal", after.dispatch.callId, after.dispatch.postal)
         end
@@ -393,6 +404,19 @@ if pluginConfig.enabled then
             TriggerEvent("SonoranCAD::dispatchnotify:CallEdit:Address", after.dispatch.callId, after.dispatch.address)
         end
     end)
+
+    AddEventHandler("SonoranCAD::dispatchnotify:CallEdit:Tracking", function(callId, tracking, primary)
+        local call = GetCallCache()[callId]
+        assert(call ~= nil, "Call not found, failed to process.")
+        local unit = GetUnitCache()[GetUnitById(primary)]
+        local officerId = GetSourceByApiId(unit.data.apiIds)
+        if tracking then
+            TriggerClientEvent("SonoranCAD::dispatchnotify:BeginTracking", officerId, callId)
+        else
+            TriggerClientEvent("SonoranCAD::dispatchnotify:StopTracking", officerId)
+        end
+    end)       
+
 
     AddEventHandler("SonoranCAD::pushevents:UnitDetach", function(call, unit)
         local officerId = GetSourceByApiId(unit.data.apiIds)
