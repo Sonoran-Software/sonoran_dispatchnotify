@@ -68,11 +68,6 @@ local config = {
     notifyMessage = "Officer {officer} is responding to your call!",
 
     --[[
-        Enable "incoming call" messages sent to your units.
-    ]]
-    enableUnitNotify = true,
-
-    --[[
         unitNotifyMethod: how should units be notified?
             none: disable notification
             chat: Sends a message in chat
