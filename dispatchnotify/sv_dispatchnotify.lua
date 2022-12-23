@@ -248,7 +248,9 @@ if pluginConfig.enabled then
                                 title = title,
                                 description = (call.description ~= nil and call.description or ""), 
                                 isEmergency = call.isEmergency,
-                                notes = {"Officer responding"},
+                                notes = {
+                                    {time = '00:00:00', label = 'Dispatch', type = 'text', content = 'Officer Responding'}
+                                },
                                 metaData = metaData,
                                 units = { identifiers }
             }
@@ -465,11 +467,10 @@ if pluginConfig.enabled then
         performApiRequest(data, 'SET_CALL_POSTAL', function() end)
     end)
 
-    AddEventHandler("SonoranCAD::pushevents:DispatchNote", function(data)
+    AddEventHandler("SonoranCAD::pushevents:DispatchNote", function(call, data)
         if not pluginConfig.sendNotesToUnits then
             return
         end
-        local call = GetCallCache()[data.callId]
         if not call then
             debugLog(("Failed to find call: %s"):format(json.encode(data)))
             return
@@ -478,11 +479,12 @@ if pluginConfig.enabled then
         -- add note to cache
         addCallNote(data.callId, data.note)
         debugLog(("Incoming note for ID %s, call: %s"):format(data.callId, json.encode(call)))
-        if call.idents ~= nil then
-            for k, v in pairs(call.idents) do
-                local officerId = GetUnitById(v)
+        local noteContent = type(data.note) == 'table' and data.note.content or data.note
+        if call.idents ~= nil and type(noteContent) == 'string' then
+            for _, ident in pairs(call.idents) do
+                local officerId = GetUnitById(ident)
                 if officerId ~= nil then
-                    local patterns = { ["{callid}"] = data.callId, ["{note}"] = data.note}
+                    local patterns = { ["{callid}"] = data.callId, ["{note}"] = noteContent}
                     local message = pluginConfig.noteMessage
                     for k, v in pairs(patterns) do
                         message = message:gsub(k, v)
@@ -500,7 +502,7 @@ if pluginConfig.enabled then
                         TriggerClientEvent("SonoranCAD::dispatchnotify:NewCallNote", officerId, data)
                     end
                 else
-                    debugLog(("Skipping officer %s, not available"):format(v))
+                    debugLog(("Skipping officer %s, not available"):format(ident))
                 end
             end
         end
