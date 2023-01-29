@@ -171,7 +171,7 @@ if pluginConfig.enabled then
             return
         end
         if not IsPlayerOnDuty(source) then
-            SendMessage("error", source, "You must be on duty to use this command.")
+            SendMessage("error", source, "You must be on duty (esxJobsAllowed in config if using a framework) and in-CAD to use this command.")
             return
         end
         if not GetUnitByPlayerId(source) then
